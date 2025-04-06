@@ -1,4 +1,6 @@
 import streamlit as st
+import joblib
+import numpy as np
 import pandas as pd
 from sklearn.metrics import (
     f1_score, log_loss, classification_report,
@@ -83,3 +85,42 @@ try:
 
 except Exception as e:
     st.error(f"❌ Erro ao carregar dados de regressão: {e}")
+
+# ====================== 🔮 Preditor ao vivo ============================
+st.header("🧪 Fazer uma nova predição manual")
+
+with st.form("form_predicao"):
+    st.subheader("📥 Informar variáveis de entrada:")
+    
+    lat = st.number_input("Latitude", value=33.0)
+    lon = st.number_input("Longitude", value=-118.0)
+    minutos = st.slider("Minutos restantes", 0, 12, 6)
+    periodo = st.selectbox("Período do jogo", [1, 2, 3, 4])
+    playoffs = st.selectbox("É playoff?", ["Sim", "Não"])
+    distancia = st.slider("Distância do arremesso (ft)", 0, 50, 15)
+
+    submitted = st.form_submit_button("🔍 Realizar Predição")
+
+    if submitted:
+        try:
+           
+            entrada = {
+                "lat": lat,
+                "lon": lon,
+                "minutes_remaining": minutos,
+                "period": periodo,
+                "playoffs": 1 if playoffs == "Sim" else 0,
+                "shot_distance": distancia
+            }
+            df_novo = pd.DataFrame([entrada])
+
+            modelo_path = "outputs/models/DecisionTreeClassifier_clf_final.pkl"
+            modelo = joblib.load(modelo_path)
+            pred = modelo.predict(df_novo)[0]
+            prob = modelo.predict_proba(df_novo)[0][1]
+
+            st.success(f"🎯 Predição: {'Acertou' if pred == 1 else 'Errou'} a cesta")
+            st.info(f"Probabilidade de acerto: {prob:.2%}")
+        
+        except Exception as e:
+            st.error(f"Erro ao carregar modelo ou realizar predição: {e}")
